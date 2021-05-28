@@ -5,5 +5,5 @@ Resources:
       InstanceType: t2.micro
       ImageId: ami-467ca739 # Amazon Linux AMI in N.Virginia
       Tags:
-        - Key: Name
-          Value: Menocal EC2 Instance
+         - Key: "Name"
+           Value: !Join [" ", [ Menoca, EC2, Instance, with, Fn, Join]]
