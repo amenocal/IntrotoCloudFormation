@@ -1,3 +1,10 @@
+Parameters:
+  NameOfService:
+    Description: "The name of the service this stack is to be used for."
+    Type: String
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access into the server
+    Type: AWS::EC2::KeyPair::KeyName
 Mappings:
   RegionMap:
     us-east-1:
@@ -21,20 +28,18 @@ Resources:
         - !Ref AWS::Region
         - AMI
       #ImageId: ami-467ca739 # Amazon Linux AMI in N.Virginia
+      SecurityGroups: 
+        - !Ref MySecurityGroup
+      KeyName: !Ref KeyName
       Tags:
         - Key: "Name"
-          Value: !Join 
-               - ""
-               - - "EC2 Menocal Instance for "
-               - !Ref AWS::Region
+          Value: !Ref NameOfService
         # - Key: "Name"
         #   Value: !Join 
         #       - ""
         #       - - "EC2 Menoca Instance for "
         #         - !Ref AWS::Region
-        #   Value: !Join [" ", [ Menoca, EC2, Instance, with, Fn, Join]]
-      SecurityGroups: 
-        - !Ref MySecurityGroup
+        #   Value: !Join [" ", [ Menoca, EC2, Instance, with, Fn, Join]]    
   MySecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
