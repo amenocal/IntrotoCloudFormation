@@ -18,7 +18,7 @@ Mappings:
     ap-southeast-2:
       AMI: ami-43874721
 Resources:
-  Ec2Instance:
+  EC2Instance:
     Type: AWS::EC2::Instance
     Metadata: 
       AWS::CloudFormation::Init:
@@ -79,6 +79,6 @@ Resources:
           CidrIp: 0.0.0.0/0
 Outputs:
   Website:
-    Description: The public DNS for the EC2 Instance
+    Description: The Public DNS for the EC2 Instance
     Value: !Sub 'http://${EC2Instance.PublicDnsName}'
     
