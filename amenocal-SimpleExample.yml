@@ -67,7 +67,7 @@ Resources:
   MySecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      GroupDescription: Enable SSH access via port 22
+      GroupDescription: Open Port 80 for website
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: '80'
