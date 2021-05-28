@@ -50,7 +50,7 @@ Resources:
         - !Ref AWS::Region
         - AMI
       #ImageId: ami-467ca739 # Amazon Linux AMI in N.Virginia
-      SecurityGroups: 
+      SecurityGroupIds: 
         - !Ref MySecurityGroup
       SubnetId: !Ref SubnetId
       KeyName: !Ref KeyName
