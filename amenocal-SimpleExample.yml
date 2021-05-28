@@ -51,10 +51,14 @@ Resources:
     Properties:
       AvailabilityZones: !GetAZs
       LaunchConfigurationName: !Ref LaunchConfiguration
-      MinSize: 1
+      MinSize: 3
       MaxSize: 3
       TargetGroupARNs: 
         - !Ref TargetGroup
+      Tags:
+        - Key: "Name"
+          Value: !Ref NameOfService
+          PropagateAtLaunch: "True"
   LaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Metadata: 
