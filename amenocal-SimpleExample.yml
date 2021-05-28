@@ -8,9 +8,9 @@ Parameters:
   VpcId:
     Description: Enter the VpcId
     Type: AWS::EC2::VPC::Id
-  SubnetId:
-    Description: Enter the SubnetId
-    Type: AWS::EC2::Subnet::Id
+  SubnetIds:
+    Description: Enter the Subnets
+    Type: List<AWS::EC2::Subnet::Id>
 Mappings:
   RegionMap:
     us-east-1:
@@ -24,9 +24,41 @@ Mappings:
     ap-southeast-2:
       AMI: ami-43874721
 Resources:
-  EC2Instance:
-    Type: AWS::EC2::Instance
+  LoadBalancer: # Application Load Balancer
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Subnets: !Ref SubnetIds
+  LoadBalancerListener: # Port 80 Listener for ALB
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: TargetGroup
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones: !GetAZs
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 3
+      TargetGroupARNs: 
+        - !Ref TargetGroup
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
     Metadata: 
+      Comment: Install php and httpd
       AWS::CloudFormation::Init:
         config: 
           packages: 
@@ -43,45 +75,52 @@ Resources:
                 enabled: true
                 ensureRunning: true
     Properties:
+      KeyName: !Ref KeyName
       InstanceType: t2.micro
+      SecurityGroups:
+        - !Ref EC2SecurityGroup
       ImageId:
         Fn::FindInMap:
         - RegionMap
         - !Ref AWS::Region
         - AMI
-      #ImageId: ami-467ca739 # Amazon Linux AMI in N.Virginia
-      SecurityGroupIds: 
-        - !Ref MySecurityGroup
-      SubnetId: !Ref SubnetId
-      KeyName: !Ref KeyName
       UserData:
         'Fn::Base64': 
           !Sub |
-            #!/bin/bash -xe            
+            #!/bin/bash -xe                        
             # Ensure AWS CFN Bootstrap is the latest
             yum install -y aws-cfn-bootstrap
             # Install the files and packages from the metadata
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2Instance  --region ${AWS::Region}
-      Tags:
-        - Key: "Name"
-          Value: !Ref NameOfService
-        # - Key: "Name"
-        #   Value: !Join 
-        #       - ""
-        #       - - "EC2 Menoca Instance for "
-        #         - !Ref AWS::Region
-        #   Value: !Join [" ", [ Menoca, EC2, Instance, with, Fn, Join]]    
-  MySecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --region ${AWS::Region}
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Open Port 80 for website
+      GroupDescription: ALB Security Group
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: 80
+          ToPort: 80
           CidrIp: 0.0.0.0/0
+  EC2SecurityGroup: 
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Instance
+  EC2InboundRule: # EC2 can only accept traffic from ALB
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId:
+        !GetAtt
+        - ALBSecurityGroup
+        - GroupId
+      GroupId:
+        !GetAtt
+        - EC2SecurityGroup
+        - GroupId
 Outputs:
   Website:
-    Description: The Public DNS for the EC2 Instance
-    Value: !Sub 'http://${EC2Instance.PublicDnsName}'
+    Description: The Public DNS for Load Balancer
+    Value: !Sub 'http://${LoadBalancer.DNSName}'
